@@ -46,3 +46,4 @@ data Token
   deriving (Show, Eq)
 
 data TokenInfo = TokenInfo {token :: Token, startRow :: Int, startCol :: Int}
+  deriving (Show, Eq)
