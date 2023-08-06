@@ -1,8 +1,32 @@
 module Main (main) where
 
+import Control.Monad (forever)
 import Lexer (lexer)
+import System.IO (hFlush, stdout)
+
+shell :: String -> IO String
+shell prev = do
+  putStrLn ""
+  putStr "File name (Empty for previous) >>> "
+  hFlush stdout
+  inputFile <- getLine
+  let fileToLex = case inputFile of
+        "" -> prev
+        _ -> inputFile
+  input <- readFile fileToLex
+  putStrLn ""
+  putStrLn "----------------------------"
+  mapM_ print $ lexer input
+  putStrLn "----------------------------"
+  return fileToLex
 
 main :: IO ()
-main = do
-  input <- readFile "test/multiline_string.monkey"
-  putStr $ show $ lexer input
+main = forever $ do
+  _ <- foldForFiles (return "") shell
+  putStrLn "Shell program finished."
+
+foldForFiles :: IO String -> (String -> IO String) -> IO String
+foldForFiles a f = do
+  curFile <- a
+  newFile <- f curFile
+  foldForFiles (return newFile) f
