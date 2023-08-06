@@ -1,16 +1,7 @@
 module Main (main) where
 
-import Lexer ()
-
--- import StringParser (runParser)
+import Lexer (lexer)
 
 main :: IO ()
 main = do
-  -- let res = runParser semicolonParser ";"
-  -- case res of
-  --   Nothing -> return ()
-  --   Just (x, y) -> do
-  --     putChar x
-  --     putStr y
-  --     putStr "\n"
-  return ()
+  putStr $ show $ lexer "let x = 5;\nlet y = 3;"

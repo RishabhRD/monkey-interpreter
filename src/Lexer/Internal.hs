@@ -1,23 +1,36 @@
+{-# LANGUAGE TupleSections #-}
+
 module Lexer.Internal (module Lexer.Internal) where
 
 import Control.Applicative (Alternative (many, some), (<|>))
 import Data.Char (isAlpha, isAlphaNum, isDigit)
-import Data.Maybe (fromJust)
 import StringParser (Parser (Parser, runParser), char, charIf, string)
-import Token (Token (..))
+import Token (Token (..), TokenInfo (TokenInfo, startCol, startRow, token))
 
-singleWhitespaceParser :: Parser Int
+type Rows = Int
+
+type Cols = Int
+
+singleWhitespaceParser :: Parser Cols
 singleWhitespaceParser = fmap (const 1) $ char ' ' <|> char '\t'
 
-whitespaceLengthParser :: Parser Int
-whitespaceLengthParser = length <$> many singleWhitespaceParser
+singleNewLineParser :: Parser Rows
+singleNewLineParser = fmap (const 1) $ string "\n" <|> string "\r\n"
 
-integerParser :: Parser (Token, Int)
+whiteSpaceEater :: Parser (Rows, Cols)
+whiteSpaceEater = toRowCol <$> blankPositions
+  where
+    blankPositions = many $ ((,0) <$> singleNewLineParser) <|> ((0,) <$> singleWhitespaceParser)
+    toRowCol = foldl combineRowCol (0, 0)
+    combineRowCol (a, b) (0, d) = (a, b + d)
+    combineRowCol (a, b) (c, _) = (a + c, b)
+
+integerParser :: Parser (Token, Rows, Cols)
 integerParser = toTokenWithLength <$> some (charIf isDigit)
   where
-    toTokenWithLength lst = (Integer lst, length lst)
+    toTokenWithLength lst = (Integer lst, 0, length lst)
 
-identifierParser :: Parser (Token, Int)
+identifierParser :: Parser (Token, Rows, Cols)
 identifierParser = toTokenWithLength <$> Parser matchString
   where
     matchString s = do
@@ -26,15 +39,15 @@ identifierParser = toTokenWithLength <$> Parser matchString
       return (headEle : tailList, remString)
       where
         alphaNumeric = charIf isAlphaNum <|> char '_'
-    toTokenWithLength lst = (Integer lst, length lst)
+    toTokenWithLength lst = (Integer lst, 0, length lst)
 
-hardcodeToken :: [Char] -> Token -> Parser (Token, Int)
-hardcodeToken str token = (token, length str) <$ string str
+hardcodeToken :: [Char] -> Token -> Parser (Token, Rows, Cols)
+hardcodeToken str t = (t, 0, length str) <$ string str
 
-illegalParser :: Parser (Token, Int)
-illegalParser = (Illegal, 1) <$ charIf (const True)
+illegalParser :: Parser (Token, Rows, Cols)
+illegalParser = (Illegal, 0, 1) <$ charIf (const True)
 
-singleTokenParser :: Parser (Token, Int)
+singleTokenParser :: Parser (Token, Rows, Cols)
 singleTokenParser =
   hardcodeToken "==" Equals
     <|> hardcodeToken "=" Assign
@@ -73,22 +86,30 @@ singleTokenParser =
     <|> identifierParser
     <|> illegalParser
 
-singleTokenWithWhitespace :: Parser (Token, (Int, Int))
-singleTokenWithWhitespace = fmap isomorph $ (,) <$> whitespaceLengthParser <*> singleTokenParser
+singleTokenWithWhitespace :: Parser (Token, ((Rows, Rows), (Cols, Cols)))
+singleTokenWithWhitespace = fmap isomorph $ (,) <$> whiteSpaceEater <*> singleTokenParser
   where
-    isomorph (a, (b, c)) = (b, (a, c))
+    isomorph ((a, b), (c, d, e)) = (c, ((a, d), (b, e)))
 
-toTokenLineInfo :: [(Token, (Int, Int))] -> [(Token, Int)]
-toTokenLineInfo tokenInfos = zip tokens startPoints
+toTokenLineInfo :: [(Token, ((Rows, Rows), (Cols, Cols)))] -> [TokenInfo]
+toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
   where
     tokens = fst <$> tokenInfos
     positions = snd <$> tokenInfos
-    whiteSpaceToStartPoint (prevStart, prevSpace) (curWhite, curSpace) =
-      (prevStart + prevSpace + curWhite, curSpace)
-    startPoints = fst <$> scanl whiteSpaceToStartPoint (0, 0) positions
+    toStartPoint
+      ((prevRowCovered, prevRowOccupied), (prevColCovered, prevColOccupied))
+      ((0, curRowOccupied), (curColBefore, curColOccupied)) =
+        ( (prevRowCovered + prevRowOccupied, curRowOccupied),
+          (prevColCovered + prevColOccupied + curColBefore, curColOccupied)
+        )
+    toStartPoint
+      ((prevRowCovered, prevRowOccupied), (_, _))
+      ((curRowBefore, curRowOccupied), (curColBefore, curColOccupied)) =
+        ( (prevRowCovered + prevRowOccupied + curRowBefore, curRowOccupied),
+          (curColBefore, curColOccupied)
+        )
+    startPoints = tail (scanl toStartPoint ((0, 0), (0, 0)) positions)
+    isomorph (a, ((b, _), (c, _))) = TokenInfo {token = a, startRow = b, startCol = c}
 
-lineParser :: Parser [(Token, Int)]
-lineParser = toTokenLineInfo <$> many singleTokenWithWhitespace
-
-lexLine :: String -> [(Token, Int)]
-lexLine = fst . fromJust . runParser lineParser
+lexParser :: Parser [TokenInfo]
+lexParser = toTokenLineInfo <$> many singleTokenWithWhitespace
