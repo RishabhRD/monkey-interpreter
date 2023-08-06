@@ -4,7 +4,6 @@ module Lexer.Internal (module Lexer.Internal) where
 
 import Control.Applicative (Alternative (many, some), (<|>))
 import Data.Char (isAlpha, isAlphaNum, isDigit)
-import Debug.Trace
 import StringParser (Parser (Parser, runParser), char, charIf, string)
 import Token (Token (..), TokenInfo (TokenInfo, startCol, startRow, token))
 
@@ -61,7 +60,7 @@ stringParser = fmap isomorph (combineAll <$> quotesParser <*> stringParser' <*> 
         positions = snd <$> strings
         calcSpace (rowCon, colCon) (0, curCol) = (rowCon, colCon + curCol)
         calcSpace (rowCon, _) (curRow, curCol) = (rowCon + curRow, curCol)
-    isomorph (a, (b, c)) = (trace $ show (b, c)) (StringVal a, b, c)
+    isomorph (a, (b, c)) = (StringVal a, b, c)
 
 illegalParser :: Parser (Token, Rows, Cols)
 illegalParser = (Illegal, 0, 1) <$ charIf (const True)
@@ -112,7 +111,7 @@ singleTokenWithWhitespace = fmap isomorph $ (,) <$> whiteSpaceEater <*> singleTo
     isomorph ((a, b), (c, d, e)) = (c, ((a, d), (b, e)))
 
 toTokenLineInfo :: [(Token, ((Rows, Rows), (Cols, Cols)))] -> [TokenInfo]
-toTokenLineInfo tokenInfos = (trace $ show startPoints) isomorph <$> zip tokens startPoints
+toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
   where
     tokens = fst <$> tokenInfos
     positions = snd <$> tokenInfos
