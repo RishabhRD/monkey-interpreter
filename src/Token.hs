@@ -4,6 +4,7 @@ data Token
   = Illegal
   | Identifier String
   | Integer String
+  | StringVal String
   | -- Symbols
     Comma
   | Semicolon

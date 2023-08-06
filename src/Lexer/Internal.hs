@@ -4,6 +4,7 @@ module Lexer.Internal (module Lexer.Internal) where
 
 import Control.Applicative (Alternative (many, some), (<|>))
 import Data.Char (isAlpha, isAlphaNum, isDigit)
+import Debug.Trace
 import StringParser (Parser (Parser, runParser), char, charIf, string)
 import Token (Token (..), TokenInfo (TokenInfo, startCol, startRow, token))
 
@@ -44,6 +45,24 @@ identifierParser = toTokenWithLength <$> Parser matchString
 hardcodeToken :: [Char] -> Token -> Parser (Token, Rows, Cols)
 hardcodeToken str t = (t, 0, length str) <$ string str
 
+stringParser :: Parser (Token, Int, Int)
+stringParser = fmap isomorph (combineAll <$> quotesParser <*> stringParser' <*> quotesParser)
+  where
+    quotesParser = char '"'
+    stringParser' = many $ backSlashQuotes <|> newLineParser <|> anyExceptQuotes
+    backSlashQuotes = singleRowTransform <$> string "\\\""
+    newLineParser = (,(1, 0)) <$> (string "\n" <|> string "\r\n")
+    singleRowTransform str = (str, (0, length str))
+    anyExceptQuotes = (,(0, 1)) . (: []) <$> charIf (/= '"')
+    combineAll _ strings' _ = (resultantString, foldl calcSpace (0, 0) positions)
+      where
+        strings = ("\"", (0, 1)) : strings' ++ [("\"", (0, 1))]
+        resultantString = strings >>= fst
+        positions = snd <$> strings
+        calcSpace (rowCon, colCon) (0, curCol) = (rowCon, colCon + curCol)
+        calcSpace (rowCon, _) (curRow, curCol) = (rowCon + curRow, curCol)
+    isomorph (a, (b, c)) = (trace $ show (b, c)) (StringVal a, b, c)
+
 illegalParser :: Parser (Token, Rows, Cols)
 illegalParser = (Illegal, 0, 1) <$ charIf (const True)
 
@@ -82,6 +101,7 @@ singleTokenParser =
     <|> hardcodeToken "true" TrueVal
     <|> hardcodeToken "false" FalseVal
     <|> hardcodeToken "return" Return
+    <|> stringParser
     <|> integerParser
     <|> identifierParser
     <|> illegalParser
@@ -92,7 +112,7 @@ singleTokenWithWhitespace = fmap isomorph $ (,) <$> whiteSpaceEater <*> singleTo
     isomorph ((a, b), (c, d, e)) = (c, ((a, d), (b, e)))
 
 toTokenLineInfo :: [(Token, ((Rows, Rows), (Cols, Cols)))] -> [TokenInfo]
-toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
+toTokenLineInfo tokenInfos = (trace $ show startPoints) isomorph <$> zip tokens startPoints
   where
     tokens = fst <$> tokenInfos
     positions = snd <$> tokenInfos
@@ -100,8 +120,13 @@ toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
       ((prevRowCovered, prevRowOccupied), (prevColCovered, prevColOccupied))
       ((0, curRowOccupied), (curColBefore, curColOccupied)) =
         ( (prevRowCovered + prevRowOccupied, curRowOccupied),
-          (prevColCovered + prevColOccupied + curColBefore, curColOccupied)
+          (extraCols + curColBefore, curColOccupied)
         )
+        where
+          extraCols =
+            if prevRowOccupied > 0
+              then prevColOccupied
+              else prevColCovered + prevColOccupied
     toStartPoint
       ((prevRowCovered, prevRowOccupied), (_, _))
       ((curRowBefore, curRowOccupied), (curColBefore, curColOccupied)) =
