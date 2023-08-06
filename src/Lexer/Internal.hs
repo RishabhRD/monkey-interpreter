@@ -39,7 +39,7 @@ identifierParser = toTokenWithLength <$> Parser matchString
       return (headEle : tailList, remString)
       where
         alphaNumeric = charIf isAlphaNum <|> char '_'
-    toTokenWithLength lst = (Integer lst, 0, length lst)
+    toTokenWithLength lst = (Identifier lst, 0, length lst)
 
 hardcodeToken :: [Char] -> Token -> Parser (Token, Rows, Cols)
 hardcodeToken str t = (t, 0, length str) <$ string str
