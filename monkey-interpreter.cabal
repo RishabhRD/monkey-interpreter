@@ -27,7 +27,7 @@ library
   exposed-modules:
       Lexer
       Lexer.Internal
-      StringParser
+      LibParse
       Token
   other-modules:
       Paths_monkey_interpreter

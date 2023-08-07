@@ -4,20 +4,20 @@ module Lexer.Internal (module Lexer.Internal) where
 
 import Control.Applicative (Alternative (many, some), (<|>))
 import Data.Char (isAlpha, isAlphaNum, isDigit)
-import StringParser (Parser (Parser, runParser), char, charIf, string)
+import LibParse (Parser (Parser), StringParser, lst, runParser, sym, symIf)
 import Token (Token (..), TokenInfo (TokenInfo, startCol, startRow, token))
 
 type Rows = Int
 
 type Cols = Int
 
-singleWhitespaceParser :: Parser Cols
-singleWhitespaceParser = fmap (const 1) $ char ' ' <|> char '\t'
+singleWhitespaceParser :: StringParser Cols
+singleWhitespaceParser = fmap (const 1) $ sym ' ' <|> sym '\t'
 
-singleNewLineParser :: Parser Rows
-singleNewLineParser = fmap (const 1) $ string "\n" <|> string "\r\n"
+singleNewLineParser :: StringParser Rows
+singleNewLineParser = fmap (const 1) $ lst "\n" <|> lst "\r\n"
 
-whiteSpaceEater :: Parser (Rows, Cols)
+whiteSpaceEater :: StringParser (Rows, Cols)
 whiteSpaceEater = toRowCol <$> blankPositions
   where
     blankPositions = many $ ((,0) <$> singleNewLineParser) <|> ((0,) <$> singleWhitespaceParser)
@@ -25,34 +25,34 @@ whiteSpaceEater = toRowCol <$> blankPositions
     combineRowCol (a, b) (0, d) = (a, b + d)
     combineRowCol (a, b) (c, _) = (a + c, b)
 
-integerParser :: Parser (Token, Rows, Cols)
-integerParser = toTokenWithLength <$> some (charIf isDigit)
+integerParser :: StringParser (Token, Rows, Cols)
+integerParser = toTokenWithLength <$> some (symIf isDigit)
   where
-    toTokenWithLength lst = (Integer lst, 0, length lst)
+    toTokenWithLength input = (Integer input, 0, length input)
 
-identifierParser :: Parser (Token, Rows, Cols)
+identifierParser :: StringParser (Token, Rows, Cols)
 identifierParser = toTokenWithLength <$> Parser matchString
   where
     matchString s = do
-      (headEle, s1) <- runParser (charIf isAlpha) s
+      (headEle, s1) <- runParser (symIf isAlpha) s
       (tailList, remString) <- runParser (many alphaNumeric) s1
       return (headEle : tailList, remString)
       where
-        alphaNumeric = charIf isAlphaNum <|> char '_'
-    toTokenWithLength lst = (Identifier lst, 0, length lst)
+        alphaNumeric = symIf isAlphaNum <|> sym '_'
+    toTokenWithLength input = (Identifier input, 0, length input)
 
-hardcodeToken :: [Char] -> Token -> Parser (Token, Rows, Cols)
-hardcodeToken str t = (t, 0, length str) <$ string str
+hardcodeToken :: [Char] -> Token -> StringParser (Token, Rows, Cols)
+hardcodeToken str t = (t, 0, length str) <$ lst str
 
-stringParser :: Parser (Token, Int, Int)
+stringParser :: StringParser (Token, Int, Int)
 stringParser = fmap isomorph (combineAll <$> quotesParser <*> stringParser' <*> quotesParser)
   where
-    quotesParser = char '"'
+    quotesParser = sym '"'
     stringParser' = many $ backSlashQuotes <|> newLineParser <|> anyExceptQuotes
-    backSlashQuotes = singleRowTransform <$> string "\\\""
-    newLineParser = (,(1, 0)) <$> (string "\n" <|> string "\r\n")
+    backSlashQuotes = singleRowTransform <$> lst "\\\""
+    newLineParser = (,(1, 0)) <$> (lst "\n" <|> lst "\r\n")
     singleRowTransform str = (str, (0, length str))
-    anyExceptQuotes = (,(0, 1)) . (: []) <$> charIf (/= '"')
+    anyExceptQuotes = (,(0, 1)) . (: []) <$> symIf (/= '"')
     combineAll _ strings' _ = (resultantString, foldl calcSpace (0, 0) positions)
       where
         strings = ("\"", (0, 1)) : strings' ++ [("\"", (0, 1))]
@@ -62,10 +62,10 @@ stringParser = fmap isomorph (combineAll <$> quotesParser <*> stringParser' <*> 
         calcSpace (rowCon, _) (curRow, curCol) = (rowCon + curRow, curCol)
     isomorph (a, (b, c)) = (StringVal a, b, c)
 
-illegalParser :: Parser (Token, Rows, Cols)
-illegalParser = (Illegal, 0, 1) <$ charIf (const True)
+illegalParser :: StringParser (Token, Rows, Cols)
+illegalParser = (Illegal, 0, 1) <$ symIf (const True)
 
-singleTokenParser :: Parser (Token, Rows, Cols)
+singleTokenParser :: StringParser (Token, Rows, Cols)
 singleTokenParser =
   hardcodeToken "==" Equals
     <|> hardcodeToken "=" Assign
@@ -105,7 +105,7 @@ singleTokenParser =
     <|> identifierParser
     <|> illegalParser
 
-singleTokenWithWhitespace :: Parser (Token, ((Rows, Rows), (Cols, Cols)))
+singleTokenWithWhitespace :: StringParser (Token, ((Rows, Rows), (Cols, Cols)))
 singleTokenWithWhitespace = fmap isomorph $ (,) <$> whiteSpaceEater <*> singleTokenParser
   where
     isomorph ((a, b), (c, d, e)) = (c, ((a, d), (b, e)))
@@ -135,5 +135,5 @@ toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
     startPoints = tail (scanl toStartPoint ((0, 0), (0, 0)) positions)
     isomorph (a, ((b, _), (c, _))) = TokenInfo {token = a, startRow = b, startCol = c}
 
-lexParser :: Parser [TokenInfo]
+lexParser :: StringParser [TokenInfo]
 lexParser = toTokenLineInfo <$> many singleTokenWithWhitespace

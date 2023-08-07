@@ -2,7 +2,7 @@ module Lexer (lexer) where
 
 import Data.Maybe (fromJust)
 import Lexer.Internal (lexParser)
-import StringParser (runParser)
+import LibParse (runParser)
 import Token (TokenInfo)
 
 lexer :: String -> [TokenInfo]
