@@ -57,6 +57,7 @@ test-suite monkey-interpreter-test
   main-is: Spec.hs
   other-modules:
       Lexer.Common
+      Lexer.IllegalSpec
       Lexer.LexerSpec
       Lexer.String.StringSpec
       Paths_monkey_interpreter
