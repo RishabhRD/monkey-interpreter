@@ -56,6 +56,9 @@ test-suite monkey-interpreter-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Lexer.Common
+      Lexer.LexerSpec
+      Lexer.String.StringSpec
       Paths_monkey_interpreter
   hs-source-dirs:
       test
