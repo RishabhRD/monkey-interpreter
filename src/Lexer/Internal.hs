@@ -3,19 +3,34 @@
 module Lexer.Internal (module Lexer.Internal) where
 
 import Control.Applicative (Alternative (many, some), (<|>))
+import Data.Bifunctor (Bifunctor, first)
 import Data.Char (isAlpha, isAlphaNum, isDigit)
-import LibParse (Parser (Parser), StringParser, lst, runParser, sym, symIf)
+import LibParse (Parser (Parser), lst, runParser, sym, symIf)
 import Token (Token (..), TokenInfo (TokenInfo, startCol, startRow, token))
+
+type StringParser = Parser Char ()
 
 type Rows = Int
 
 type Cols = Int
 
+firstToUnit :: (Data.Bifunctor.Bifunctor p) => (t -> p a c) -> t -> p () c
+firstToUnit p c = first (const ()) (p c)
+
+char :: Char -> Parser Char () Char
+char = firstToUnit sym
+
+charIf :: (c -> Bool) -> Parser c () c
+charIf = firstToUnit symIf
+
+string :: String -> Parser Char () String
+string = firstToUnit lst
+
 singleWhitespaceParser :: StringParser Cols
-singleWhitespaceParser = fmap (const 1) $ sym ' ' <|> sym '\t'
+singleWhitespaceParser = fmap (const 1) $ char ' ' <|> char '\t'
 
 singleNewLineParser :: StringParser Rows
-singleNewLineParser = fmap (const 1) $ lst "\n" <|> lst "\r\n"
+singleNewLineParser = fmap (const 1) $ string "\n" <|> string "\r\n"
 
 whiteSpaceEater :: StringParser (Rows, Cols)
 whiteSpaceEater = toRowCol <$> blankPositions
@@ -26,7 +41,7 @@ whiteSpaceEater = toRowCol <$> blankPositions
     combineRowCol (a, b) (c, _) = (a + c, b)
 
 integerParser :: StringParser (Token, Rows, Cols)
-integerParser = toTokenWithLength <$> some (symIf isDigit)
+integerParser = toTokenWithLength <$> some (charIf isDigit)
   where
     toTokenWithLength input = (Integer input, 0, length input)
 
@@ -34,25 +49,25 @@ identifierParser :: StringParser (Token, Rows, Cols)
 identifierParser = toTokenWithLength <$> Parser matchString
   where
     matchString s = do
-      (headEle, s1) <- runParser (symIf isAlpha) s
+      (headEle, s1) <- runParser (charIf isAlpha) s
       (tailList, remString) <- runParser (many alphaNumeric) s1
       return (headEle : tailList, remString)
       where
-        alphaNumeric = symIf isAlphaNum <|> sym '_'
+        alphaNumeric = charIf isAlphaNum <|> char '_'
     toTokenWithLength input = (Identifier input, 0, length input)
 
 hardcodeToken :: [Char] -> Token -> StringParser (Token, Rows, Cols)
-hardcodeToken str t = (t, 0, length str) <$ lst str
+hardcodeToken str t = (t, 0, length str) <$ string str
 
 stringParser :: StringParser (Token, Int, Int)
 stringParser = fmap isomorph (combineAll <$> quotesParser <*> stringParser' <*> quotesParser)
   where
-    quotesParser = sym '"'
+    quotesParser = char '"'
     stringParser' = many $ backSlashQuotes <|> newLineParser <|> anyExceptQuotes
-    backSlashQuotes = singleRowTransform <$> lst "\\\""
-    newLineParser = (,(1, 0)) <$> (lst "\n" <|> lst "\r\n")
+    backSlashQuotes = singleRowTransform <$> string "\\\""
+    newLineParser = (,(1, 0)) <$> (string "\n" <|> string "\r\n")
     singleRowTransform str = (str, (0, length str))
-    anyExceptQuotes = (,(0, 1)) . (: []) <$> symIf (/= '"')
+    anyExceptQuotes = (,(0, 1)) . (: []) <$> charIf (/= '"')
     combineAll _ strings' _ = (resultantString, foldl calcSpace (0, 0) positions)
       where
         strings = ("\"", (0, 1)) : strings' ++ [("\"", (0, 1))]
@@ -63,7 +78,7 @@ stringParser = fmap isomorph (combineAll <$> quotesParser <*> stringParser' <*> 
     isomorph (a, (b, c)) = (StringVal a, b, c)
 
 illegalParser :: StringParser (Token, Rows, Cols)
-illegalParser = (Illegal, 0, 1) <$ symIf (const True)
+illegalParser = (Illegal, 0, 1) <$ charIf (const True)
 
 singleTokenParser :: StringParser (Token, Rows, Cols)
 singleTokenParser =

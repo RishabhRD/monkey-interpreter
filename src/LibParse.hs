@@ -1,6 +1,7 @@
 module LibParse (module LibParse) where
 
 import Control.Applicative (Alternative (empty), (<|>))
+import Data.Bifunctor (Bifunctor (bimap))
 
 newtype Parser t e a = Parser {runParser :: [t] -> Either [e] (a, [t])}
 
@@ -32,18 +33,25 @@ instance Alternative (Parser t e) where
         Right res -> Right res
         Left errs' -> Left $ errs ++ errs'
 
-symIf :: (t -> Bool) -> Parser t e t
+instance Bifunctor (Parser t) where
+  bimap f g (Parser p) = Parser $ \s -> do
+    let res = p s
+    case res of
+      Left a -> Left $ fmap f a
+      Right (c, t) -> Right (g c, t)
+
+symIf :: (t -> Bool) -> Parser t (Maybe t) t
 symIf f = Parser matchSym
   where
-    matchSym [] = Left []
+    matchSym [] = Left [Nothing]
     matchSym (x : xs)
       | f x = Right (x, xs)
-      | otherwise = Left []
+      | otherwise = Left [Just x]
 
-lst :: (Eq t) => [t] -> Parser t e [t]
+lst :: (Eq t) => [t] -> Parser t (Maybe t) [t]
 lst = mapM sym
 
-sym :: (Eq t) => t -> Parser t e t
+sym :: (Eq t) => t -> Parser t (Maybe t) t
 sym c = symIf (== c)
 
 type StringParser = Parser Char ()
