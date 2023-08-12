@@ -30,6 +30,7 @@ library
       Lexer.Internal
       LibParse
       Parser
+      Parser.Internal
       Token
   other-modules:
       Paths_monkey_interpreter
