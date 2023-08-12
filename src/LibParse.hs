@@ -1,14 +1,11 @@
+{-# LANGUAGE DeriveFunctor #-}
+
 module LibParse (module LibParse) where
 
 import Control.Applicative (Alternative (empty), (<|>))
 import Data.Bifunctor (Bifunctor (bimap))
 
-newtype Parser t e a = Parser {runParser :: [t] -> Either [e] (a, [t])}
-
-instance Functor (Parser t e) where
-  fmap f (Parser p) = Parser $ \s -> do
-    (res, rem_s) <- p s
-    return (f res, rem_s)
+newtype Parser t e a = Parser {runParser :: [t] -> Either [e] (a, [t])} deriving (Functor)
 
 instance Applicative (Parser t e) where
   pure x = Parser $ \s -> Right (x, s)
