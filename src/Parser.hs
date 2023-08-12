@@ -1,7 +1,11 @@
 module Parser (module Parser) where
 
-import AST (AST, ParseError (..))
-import Token (TokenInfo)
+import AST (AST)
+import Info (Info)
+import LibParse (Parser (runParser))
+import Parser.Internal (astParser)
+import Parser.Types (ParseError (..))
+import Token (Token)
 
-parse :: [TokenInfo] -> Either ParseError AST
-parse = const $ Left ParseError
+parse :: [Info Token] -> Either [ParseError] AST
+parse = fmap fst . runParser astParser

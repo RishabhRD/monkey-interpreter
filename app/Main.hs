@@ -2,6 +2,7 @@ module Main (main) where
 
 import Control.Monad (forever)
 import Lexer (lexer)
+import Parser (parse)
 import System.IO (hFlush, stdout)
 
 shell :: String -> IO String
@@ -16,7 +17,7 @@ shell prev = do
   input <- readFile fileToLex
   putStrLn ""
   putStrLn "----------------------------"
-  mapM_ print $ lexer input
+  mapM_ print $ parse $ lexer input
   putStrLn "----------------------------"
   return fileToLex
 

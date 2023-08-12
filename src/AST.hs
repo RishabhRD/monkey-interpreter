@@ -1,15 +1,15 @@
 module AST (module AST) where
 
-data ParseError = ParseError
+import Info (Info (..))
 
 newtype Ident = Ident String deriving (Show, Eq)
 
-type NodeInfo a = (a, Int, Int)
+data LetStatement = LetStatement (Info Ident) (Info Expression) deriving (Show, Eq)
 
-data Expression = Var (NodeInfo Ident)
+data Expression
+  = VariableNode (Info Ident)
+  | IntegerNode (Info String)
+  | StringNode (Info String)
+  deriving (Show, Eq)
 
-data Statement
-  = Let (NodeInfo Ident) (NodeInfo Expression)
-  | Return (NodeInfo Expression)
-
-newtype AST = AST [NodeInfo Statement]
+newtype AST = AST [Info LetStatement] deriving (Show, Eq)

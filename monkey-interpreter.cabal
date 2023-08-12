@@ -26,11 +26,13 @@ source-repository head
 library
   exposed-modules:
       AST
+      Info
       Lexer
       Lexer.Internal
       LibParse
       Parser
       Parser.Internal
+      Parser.Types
       Token
   other-modules:
       Paths_monkey_interpreter

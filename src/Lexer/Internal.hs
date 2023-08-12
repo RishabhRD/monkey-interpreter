@@ -5,8 +5,9 @@ module Lexer.Internal (module Lexer.Internal) where
 import Control.Applicative (Alternative (many, some), (<|>))
 import Data.Bifunctor (Bifunctor, first)
 import Data.Char (isAlpha, isAlphaNum, isDigit)
+import Info (Info (Info, startCol, startRow, val))
 import LibParse (Parser (Parser), lst, runParser, sym, symIf)
-import Token (Token (..), TokenInfo (TokenInfo, startCol, startRow, token))
+import Token (Token (..))
 
 type StringParser = Parser Char ()
 
@@ -125,7 +126,7 @@ singleTokenWithWhitespace = fmap isomorph $ (,) <$> whiteSpaceEater <*> singleTo
   where
     isomorph ((a, b), (c, d, e)) = (c, ((a, d), (b, e)))
 
-toTokenLineInfo :: [(Token, ((Rows, Rows), (Cols, Cols)))] -> [TokenInfo]
+toTokenLineInfo :: [(Token, ((Rows, Rows), (Cols, Cols)))] -> [Info Token]
 toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
   where
     tokens = fst <$> tokenInfos
@@ -148,7 +149,7 @@ toTokenLineInfo tokenInfos = isomorph <$> zip tokens startPoints
           (curColBefore, curColOccupied)
         )
     startPoints = tail (scanl toStartPoint ((0, 0), (0, 0)) positions)
-    isomorph (a, ((b, _), (c, _))) = TokenInfo {token = a, startRow = b, startCol = c}
+    isomorph (a, ((b, _), (c, _))) = Info {val = a, startRow = b, startCol = c}
 
-lexParser :: StringParser [TokenInfo]
+lexParser :: StringParser [Info Token]
 lexParser = toTokenLineInfo <$> many singleTokenWithWhitespace

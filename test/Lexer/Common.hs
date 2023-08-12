@@ -1,10 +1,11 @@
 module Lexer.Common (module Lexer.Common) where
 
-import Lexer
-import Test.Hspec
-import Token
+import Info (Info)
+import Lexer (lexer)
+import Test.Hspec (shouldBe)
+import Token (Token)
 
-testFile :: String -> [TokenInfo] -> IO ()
+testFile :: String -> [Info Token] -> IO ()
 testFile fileName expectedTokens = do
   let inputFile = "test/Lexer/" ++ fileName
   input <- readFile inputFile

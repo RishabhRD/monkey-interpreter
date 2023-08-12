@@ -1,7 +1,8 @@
 module Parser.Types (module Parser.Types) where
 
-import Token (TokenInfo)
+import Info (Info)
+import Token (Token)
 
-data ParserError
-  = UnexpectedToken TokenInfo
+data ParseError
+  = UnexpectedToken (Info Token)
   | UnexpectedEnd

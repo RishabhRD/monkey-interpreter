@@ -1,9 +1,10 @@
 module Lexer (lexer) where
 
 import Data.Either (fromRight)
+import Info (Info)
 import Lexer.Internal (lexParser)
 import LibParse (runParser)
-import Token (TokenInfo)
+import Token (Token)
 
-lexer :: String -> [TokenInfo]
+lexer :: String -> [Info Token]
 lexer = fst . fromRight ([], "") . runParser lexParser
