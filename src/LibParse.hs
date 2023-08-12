@@ -48,10 +48,17 @@ symIf f = Parser matchSym
       | f x = Right (x, xs)
       | otherwise = Left [Just x]
 
+symMaybeMap :: (t -> Maybe t') -> Parser t (Maybe t) t'
+symMaybeMap f = Parser matchSym
+  where
+    matchSym [] = Left [Nothing]
+    matchSym (x : xs) = valFor (f x) xs
+    valFor val xs = case val of
+      Nothing -> Left [Nothing]
+      Just res -> Right (res, xs)
+
 lst :: (Eq t) => [t] -> Parser t (Maybe t) [t]
 lst = mapM sym
 
 sym :: (Eq t) => t -> Parser t (Maybe t) t
 sym c = symIf (== c)
-
-type StringParser = Parser Char ()
