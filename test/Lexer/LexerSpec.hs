@@ -249,6 +249,7 @@ spec = do
               Info {val = RParen, startRow = 47, startCol = 22},
               Info {val = Semicolon, startRow = 47, startCol = 23},
               Info {val = RBrace, startRow = 48, startCol = 2},
-              Info {val = RBrace, startRow = 49, startCol = 0}
+              Info {val = RBrace, startRow = 49, startCol = 0},
+              Info {val = EOF, startRow = 50, startCol = 0}
             ]
       testFile "program.monkey" expected

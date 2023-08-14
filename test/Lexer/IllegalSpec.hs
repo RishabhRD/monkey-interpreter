@@ -17,6 +17,7 @@ spec = do
               Info {val = Assign, startRow = 0, startCol = 8},
               Info {val = Illegal, startRow = 0, startCol = 10},
               Info {val = Integer "2", startRow = 0, startCol = 11},
-              Info {val = Semicolon, startRow = 0, startCol = 12}
+              Info {val = Semicolon, startRow = 0, startCol = 12},
+              Info {val = EOF, startRow = 0, startCol = 13}
             ]
       lexer "let \\@f = #2;" `shouldBe` expected

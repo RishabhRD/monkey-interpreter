@@ -17,7 +17,10 @@ shell prev = do
   input <- readFile fileToLex
   putStrLn ""
   putStrLn "----------------------------"
-  mapM_ print $ parse $ lexer input
+  let lexed = lexer input
+  print lexed
+  print ""
+  print $ parse lexed
   putStrLn "----------------------------"
   return fileToLex
 

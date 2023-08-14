@@ -34,6 +34,11 @@ spec = do
                 { val = Semicolon,
                   startRow = 0,
                   startCol = 15
+                },
+              Info
+                { val = EOF,
+                  startRow = 1,
+                  startCol = 0
                 }
             ]
       testFile "String/simple_string.monkey" expected
@@ -63,6 +68,11 @@ spec = do
                 { val = Semicolon,
                   startRow = 0,
                   startCol = 25
+                },
+              Info
+                { val = EOF,
+                  startRow = 1,
+                  startCol = 0
                 }
             ]
       testFile "String/string_with_backslash_quotes.monkey" expected
@@ -92,6 +102,11 @@ spec = do
                 { val = Semicolon,
                   startRow = 1,
                   startCol = 8
+                },
+              Info
+                { val = EOF,
+                  startRow = 2,
+                  startCol = 0
                 }
             ]
       testFile "String/newline.monkey" expected
@@ -171,6 +186,11 @@ spec = do
                 { val = Semicolon,
                   startRow = 2,
                   startCol = 9
+                },
+              Info
+                { val = EOF,
+                  startRow = 3,
+                  startCol = 0
                 }
             ]
       testFile "String/string_with_multiple_statements.monkey" expected

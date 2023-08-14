@@ -2,6 +2,7 @@ module Token (module Token) where
 
 data Token
   = Illegal
+  | EOF
   | Identifier String
   | Integer String
   | StringVal String

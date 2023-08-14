@@ -83,7 +83,8 @@ illegalParser = (Illegal, 0, 1) <$ charIf (const True)
 
 singleTokenParser :: StringParser (Token, Rows, Cols)
 singleTokenParser =
-  hardcodeToken "==" Equals
+  hardcodeToken "\0" EOF
+    <|> hardcodeToken "==" Equals
     <|> hardcodeToken "=" Assign
     <|> hardcodeToken "&&" And
     <|> hardcodeToken "&" BitAnd

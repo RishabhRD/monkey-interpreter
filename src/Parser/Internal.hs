@@ -1,10 +1,11 @@
 module Parser.Internal (module Parser.Internal) where
 
-import AST (AST (AST), Expression (..), Ident (Ident), LetStatement (..))
-import Control.Applicative (Alternative (many), (<|>))
+import AST (AST (AST), Expression (..), Ident (Ident), TopStatement (..))
+import Control.Applicative ((<|>))
 import Data.Bifunctor (Bifunctor (first))
 import Info (Info (Info), startCol, startRow, val)
 import LibParse (Parser, symIf, symMaybeMap)
+import MonadUtils (someWhile)
 import Parser.Types (ParseError (UnexpectedEnd, UnexpectedToken))
 import Token (Token (..))
 
@@ -60,7 +61,7 @@ expressionParser =
     <|> integerParser
     <|> variableParser
 
-letParser :: TokenParser (Info LetStatement)
+letParser :: TokenParser (Info TopStatement)
 letParser = do
   letT <- tokenParser Let
   (identToken, ir, ic) <- identifierTokenParser
@@ -70,9 +71,13 @@ letParser = do
   _ <- tokenParser Semicolon
   return Info {val = LetStatement ident expr, startRow = startRow letT, startCol = startCol letT}
 
-letStatementParser :: TokenParser (Info LetStatement)
-letStatementParser = letParser
+topStatementParser :: TokenParser (Info TopStatement)
+topStatementParser = letParser <|> token2Node EOFNode EOF
+  where
+    token2Node node token = fmap (const node) <$> tokenParser token
 
--- TODO: Report error when encounter any rather than just stopping paring
 astParser :: TokenParser AST
-astParser = AST <$> many letStatementParser
+astParser = AST <$> someWhile (isNotEOF . val) topStatementParser
+  where
+    isNotEOF EOFNode = False
+    isNotEOF _ = True

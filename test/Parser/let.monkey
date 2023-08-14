@@ -1,4 +1,3 @@
-let x = 5;
-let str = "hello";
-
-let y = x;
+let xy = 5
+let y = xy;
+let m = 4;

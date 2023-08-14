@@ -6,3 +6,4 @@ import Token (Token)
 data ParseError
   = UnexpectedToken (Info Token)
   | UnexpectedEnd
+  deriving (Show, Eq)

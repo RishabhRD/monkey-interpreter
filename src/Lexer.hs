@@ -7,4 +7,4 @@ import LibParse (runParser)
 import Token (Token)
 
 lexer :: String -> [Info Token]
-lexer = fst . fromRight ([], "") . runParser lexParser
+lexer str = fst . fromRight ([], "") . runParser lexParser $ (str ++ "\0")
